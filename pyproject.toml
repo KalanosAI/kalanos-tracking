@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kalanos-tracking"
+version = "0.1.0"
+description = "Attach Kalanos dataset assessments to existing experiment runs"
+requires-python = ">=3.10"
+readme = "README.md"
+license = "Apache-2.0"
+dependencies = ["kalanos==0.9.3"]
+
+[project.optional-dependencies]
+wandb = ["wandb>=0.19,<1"]
+tensorboard = ["tensorboard>=2.17,<3"]
+trackio = ["trackio>=0.45,<1"]
+mlflow = ["mlflow-skinny>=2.20,<4"]
+
+smoke = ["sqlalchemy>=2,<3", "alembic>=1.13,<2", "tensorboardX>=2.6,<3"]
+
+[project.urls]
+Homepage = "https://kalanos.ai"
+Source = "https://github.com/KalanosAI/kalanos-tracking"
+Issues = "https://github.com/KalanosAI/kalanos-tracking/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]

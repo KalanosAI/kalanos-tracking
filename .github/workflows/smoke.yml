@@ -1,0 +1,49 @@
+name: Real SDK smoke
+# Grades a small recording with the real grader, then runs each shipped example against the real
+# tracker SDKs in local/offline mode. No hosted service and no training job is used.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - src/**
+      - examples/**
+      - pyproject.toml
+      - .github/workflows/smoke.yml
+permissions:
+  contents: read
+concurrency:
+  group: smoke-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - run: python -m pip install ".[wandb,mlflow,trackio,smoke]"
+      - name: Grade a small recording with the real grader
+        run: |
+          mkdir -p data
+          python - <<'PY'
+          import csv, math
+          with open("data/recording.csv", "w") as f:
+              w = csv.writer(f)
+              w.writerow(["timestamp", "joint_position"])
+              for i in range(200):
+                  w.writerow([i / 100, math.sin(i / 20)])
+          PY
+          kalanos grade ./data --report audit.json --no-sidecar
+      - name: Run each example against its real SDK
+        env:
+          WANDB_MODE: offline
+          WANDB_SILENT: 'true'
+        run: |
+          python examples/wandb_offline.py audit.json smoke/wandb
+          python examples/mlflow_local.py audit.json smoke/mlflow
+          python examples/tensorboard_local.py audit.json smoke/tensorboard
+          python examples/trackio_local.py audit.json smoke/trackio

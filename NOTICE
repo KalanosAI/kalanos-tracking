@@ -1,0 +1,11 @@
+Kalanos Tracking
+Copyright 2026 Kalanos AI
+
+This package reads a Kalanos assessment through the Kalanos report loader (Apache-2.0,
+published on PyPI as a pinned dependency; its source code is not copied here) and writes
+selected fields to experiment trackers you already use. The tracker libraries are optional
+dependencies and keep their own licenses, trademarks and attribution.
+
+All product, company and project names are trademarks of their respective owners and are
+used only to identify compatibility. This project is independent and is not affiliated
+with, sponsored by or endorsed by those owners.
