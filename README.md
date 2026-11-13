@@ -4,7 +4,7 @@
 
 A lightweight bridge from a **saved Kalanos assessment** to an existing **Weights & Biases, MLflow, Trackio or TensorBoard run**. For robotics engineers preparing imitation-learning experiments, it answers a question a loss curve cannot: **what did we actually check about the data used for this run?**
 
-[Quickstart](#start-in-three-steps) · [W&B](#weights--biases) · [MLflow](#mlflow) · [Private setups](#your-data-your-tracking-destination) · [Integration guide](docs/INTEGRATION.md)
+[Quickstart](#start-in-three-steps) · [W&B](#weights--biases) · [MLflow](#mlflow) · [Trackio](#trackio) · [TensorBoard](#tensorboard) · [Private setups](#your-data-your-tracking-destination) · [Integration guide](docs/INTEGRATION.md)
 
 ```mermaid
 flowchart LR
@@ -41,12 +41,19 @@ A descriptive score is **not** training readiness. Readiness is relative to reco
 
 ### 1. Install from the repository checkout
 
-After downloading this source package, run from its root:
+Clone the repository and choose the tracker used by your training script:
 
 ```bash
+git clone https://github.com/KalanosAI/kalanos-tracking.git
+cd kalanos-tracking
+
 python -m pip install '.[wandb]'       # W&B only
 # or
 python -m pip install '.[mlflow]'      # MLflow only
+# or
+python -m pip install '.[trackio]'     # Trackio only
+# or
+python -m pip install '.[tensorboard]' # TensorBoard; use your existing PyTorch writer
 # or
 python -m pip install '.[wandb,mlflow,trackio,tensorboard]'
 ```
@@ -124,6 +131,20 @@ with SummaryWriter("runs/robot-learning") as writer:
 Use your existing PyTorch installation; the `tensorboard` extra does **not** install PyTorch. A compatible `tensorboardX.SummaryWriter` can also be supplied. Metadata and coverage appear in TensorBoard's Text panel.
 
 For an optional local report copy, pass `artifact="summary"` or `"full"` **and** `report_dir="reports"`. Files are placed under `<report_dir>/<slot>/<report-sha256>/`. This is a sidecar export, not an uploaded or clickable TensorBoard artifact. The caller flushes/closes the writer.
+
+## What you will see in your run
+
+With `slot="train_data"`, look for `kalanos/train_data/` in the same run as your training metrics:
+
+| Backend | Example location and content |
+|---|---|
+| W&B | Run summary: `kalanos/train_data/episodes_review`; optional report under the run's Artifacts. These static fields are not added to training history automatically. |
+| MLflow | Run metrics: `kalanos/train_data/episodes_review`; provenance in tags; optional files under `kalanos/train_data` in Artifacts. |
+| Trackio | Run history at your chosen step: `kalanos/train_data/episodes_review`, plus the Markdown `kalanos/train_data/assessment` entry; optional report artifact. |
+| TensorBoard | Scalars: `kalanos/train_data/episodes_review`; Text: `kalanos/train_data/assessment`. Optional report copies remain local sidecars. |
+
+The `readiness_score` field appears only when the report defines it. These are field-name examples,
+not fabricated assessment results or a promise that dataset scores predict training performance.
 
 ## Choose what to send
 
@@ -206,7 +227,7 @@ python examples/tensorboard_local.py audit.json ./smoke/tensorboard
 python examples/trackio_local.py audit.json ./smoke/trackio      # needs the trackio extra
 ```
 
-Use a fresh output directory for the MLflow example because it creates a named experiment. These scripts use local/offline output; they do not launch training. The Trackio example keeps its run local to the output directory; the Trackio snippet above deliberately takes an existing run so your application, not the adapter, selects the destination.
+Use a fresh output directory for the MLflow example because it creates a named experiment. These scripts use local/offline output; they do not launch training. The Trackio example refuses to run if `TRACKIO_SPACE_ID`, `TRACKIO_SERVER_URL` or `TRACKIO_BUCKET_ID` is set (even to an empty value). Unset those variables for this local-only smoke; it does not silently change your configured remote destination. Trackio itself may still contact Hugging Face to look up your default username when an `HF_TOKEN` is present (no assessment data is sent); unset `HF_TOKEN` for a strictly offline run. For intentional remote logging, use `examples/trackio_existing_run.py`. With those settings absent, the local example stores output in the requested directory; the Trackio snippet above deliberately takes an existing run so your application, not the adapter, selects the destination.
 
 ## Learn more
 
