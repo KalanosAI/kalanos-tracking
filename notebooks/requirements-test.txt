@@ -1,0 +1,5 @@
+# Only for running notebooks/test_hub_audit_viewer.py outside Colab. The notebook installs its own pinned copies.
+ipython
+ipywidgets
+markdown-it-py==3.0.0
+bleach==6.2.0
