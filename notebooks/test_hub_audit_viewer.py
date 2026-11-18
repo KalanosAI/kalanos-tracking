@@ -381,7 +381,8 @@ class ViewerFlowTests(unittest.TestCase):
         state = self.ns["make_viewer"](url)
         box = next(x for x in self.shown if hasattr(x, "children"))
         field, buttons, output, _ = box.children
-        return state, field, buttons.children[0], buttons.children[1], output
+        by_name = {b.description: b for b in buttons.children}
+        return state, field, by_name["Load assessment"], by_name["Download snapshot"], output
 
     def ok_fetcher(self, audit_url):
         raw = self.text.encode()
@@ -425,6 +426,37 @@ class ViewerFlowTests(unittest.TestCase):
         self.assertFalse(load.disabled)
         self.assertTrue(save.disabled)
         self.assertIn("Could not load assessment", printed.getvalue())
+
+    def paste_button(self):
+        box = next(x for x in self.shown if hasattr(x, "children"))
+        return next(b for b in box.children[1].children if b.description.startswith("Paste URL"))
+
+    def test_paste_button_fills_and_loads_the_clipboard_url(self):
+        state, field, _, _, _ = self.build(self.ok_fetcher)
+        field.value = "https://hub.kalanos.ai/d/hf/other/set"
+        self.assertIsNone(state.audit)
+        self.ns["read_clipboard"] = lambda: "https://hub.kalanos.ai" + SLUG
+        self.paste_button().click()
+        self.assertEqual(field.value, "https://hub.kalanos.ai" + SLUG)
+        self.assertIsNotNone(state.audit)
+
+    def test_paste_button_refuses_non_hub_urls_and_unreadable_clipboard(self):
+        state, field, _, _, _ = self.build(self.ok_fetcher)
+        self.ns["read_clipboard"] = lambda: "https://evil.example/d/hf/a/b"
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.paste_button().click()
+        self.assertIsNone(state.audit, "a non-Hub URL is rejected by the same check as typed URLs")
+
+        def blocked():
+            raise self.ns["AuditError"]("The browser blocked clipboard access.")
+
+        self.ns["read_clipboard"] = blocked
+        self.paste_button().click()  # prints a message; never raises
+        self.assertIsNone(state.audit)
+
+    def test_read_clipboard_outside_colab_is_a_plain_error(self):
+        with self.assertRaises(self.ns["AuditError"]):
+            self.ns["read_clipboard"]()
 
     def test_snapshot_button_writes_original_bytes(self):
         _, _, _, save, _ = self.build(self.ok_fetcher)
