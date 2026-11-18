@@ -2,4 +2,4 @@
 ipython
 ipywidgets
 markdown-it-py==3.0.0
-bleach==6.2.0
+bleach==6.4.0
